@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+
+var fs = require('fs-extra');
+var path = require('path');
+var log = require('verbalize');
+var argv = require('minimist')(process.argv.slice(2));
+var guid = require('easy-guid');
+var builder = require('xmlbuilder');
+var randomString = require('random-string');
+var randomExt = require('random-ext');
+var format = require('date-format');
+var mkdirp = require('mkdirp');
+var randomWords = require('random-words');
+
+var output_folder = './output';
+var sub_folder_max_size = 500000;
+
+// Verbalize `runner`
+log.runner = 'sample-data-generator';
+
+// Use `-n` or `--number` to specify MarkLogic host name.
+var numberDocs  = argv.n || argv.number;
+
+// Use `-c` or `--config` to specify XML element format
+var configFilePath  = argv.c || argv.config;
+
+
+if (!numberDocs) {
+ 	log.error('Please provide a total nuember of XML documents to generate using the attribute `-n` or `--number`');
+}
+
+if (!configFilePath) {
+ 	log.error('Please provide config file path the attribute `-c` or `--config`');
+}
+
+/**
+ * Application
+ */
+
+if (numberDocs>0 && configFilePath) {
+
+	printConfig();
+
+	var xmlElementsConfig = getXmlElementsConfig(configFilePath);
+	var guid = guid.new();
+	var sub_folder_id=0;
+	fs.removeSync(output_folder);
+	mkdirp.sync(output_folder, function(err) {
+		log.error(err);
+	});
+	mkdirp(output_folder+'/block_'+sub_folder_id, function(err) {
+		log.error(err);
+	});
+
+	if(xmlElementsConfig != null && xmlElementsConfig.elements.length > 0) {
+		for (var i = 1; i <= numberDocs ; i++) {
+				var xml  = generateXmlDoc();
+				log.writeln(log.green('Doc XML '+i+' generated'));
+				if(Math.floor(i/sub_folder_max_size) > sub_folder_id){
+					sub_folder_id = sub_folder_id+1;
+					mkdirp.sync(output_folder+'/block_'+sub_folder_id, function(err) {
+						log.error(err);
+					});
+				}
+				var file_path = output_folder + '/block_' + sub_folder_id+'/'+guid + '_' + i + '.xml';
+  			fs.writeFileSync(file_path,xml);
+			}
+			log.writeln(log.green(numberDocs+ ' XML documents has been generated under ' + output_folder + ' folder'));
+		}
+	}
+
+
+/**
+ * Generate an XML doc base on elements config
+ * @return XML doc as String
+ */
+function generateXmlDoc(){
+	var xml = builder.create(xmlElementsConfig.root);
+				for (var j = 0; j < xmlElementsConfig.elements.length; j++) {
+					switch(xmlElementsConfig.elements[j].type) {
+					    case 'string':
+					        xml.ele(xmlElementsConfig.elements[j].name, randomWords({ exactly: xmlElementsConfig.elements[j].nbwords, join: ' ' }));
+					        break;
+					    case 'date':
+					        xml.ele(xmlElementsConfig.elements[j].name,format.asString('yyyy-MM-ddThh:mm:ss', randomExt.date(new Date())));
+					        break;
+					    case 'url':
+									xml.ele(xmlElementsConfig.elements[j].name, 'http://'+randomString({
+					        	length: xmlElementsConfig.elements[j].length,
+									  numeric: true,
+									  letters: false,
+									  special: false
+					        })+'.com');
+					    		break;
+							case 'number':
+									xml.ele(xmlElementsConfig.elements[j].name, randomString({
+					        	length: xmlElementsConfig.elements[j].length,
+									  numeric: true,
+									  letters: false,
+									  special: false
+					        }));
+					        break;
+					    default:
+					        xml.ele(xmlElementsConfig.elements[j].name,'');
+					}
+				}
+				xml.end();
+				return xml.toString({ pretty: true});
+}
+
+/**
+ * Print Command line options
+ * @return {string}
+ */
+function printConfig() {
+	log.writeln(log.green('Your config:'));
+	log.writeln('Total Docs to generate & ingest: '+ numberDocs);
+	log.writeln('output folder: '+ output_folder);
+}
+
+/**
+ * Get XML elements params file content
+ * @param  {string} path config file path
+ * @return {json}      json file
+ */
+function getXmlElementsConfig(path){
+	return JSON.parse(fs.readFileSync(path, 'utf8'));
+}
