@@ -8,18 +8,16 @@ Xml-Sample-Data-Generator is a command line tool build with node.js to generate 
 You can configure the XML elements of your sample data by providing a config files that describes the XML elements(Type,length..).
 
 ## Setup
-1. Install node.js dependencies:
+1.Install node.js dependencies:
 
 ```
 npm install
-
 ```
-
-2. create a configuration file that describes the format of your XML elements:
+2.create a configuration file that describes the format of your XML elements:
 
 An example is provides. See example_xml_elements_config.json
 
-3. Run it:
+3.Run it:
 
 You must provide the number of xml documents to generate and the config file path.
 
@@ -27,9 +25,5 @@ Here is an example:
 
 ```
 node bin/sampledatagenerator -n 100000 -c example_xml_elements_config.json
-
 ```
-
-
-
 
