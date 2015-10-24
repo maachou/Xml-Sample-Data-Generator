@@ -15,7 +15,7 @@ npm install
 ```
 2.create a configuration file that describes the format of your XML elements:
 
-An example is provides. See example_xml_elements_config.json
+An example is provided. See example_xml_elements_config.json
 
 3.Run it:
 
